@@ -61,7 +61,7 @@ Mental Model의 글들은
 **현재 시점에서는** 아래의 글이  
 이 섹션의 문제의식을 가장 잘 드러내는 출발점이다.
 
-- **[관심사 분리: Variant 추상화가 경계를 침범할 때](separation-of-concerns)**
+- **[관심사 분리: Variant 추상화가 경계를 침범할 때]({{ '/docs/ko/mental-model/separation-of-concerns' | relative_url }})**
 
 이 글에서 제시한 기준을 바탕으로,  
 이후의 Mental Model 글들은  
