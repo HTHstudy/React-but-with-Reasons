@@ -7,449 +7,851 @@ nav_order: 2
 permalink: /docs/ko/mental-model/separation-of-concerns
 ---
 
-# 관심사 분리: "경계를 어떻게 나눌 것인가?
+# 관심사 분리: 경계를 어떻게 나눌 것인가
 
-## 들어가며 — 왜 이 이야기를 하게 되었는가
+## 들어가며 — 복잡하니까 나눠야지
 
-실무에서 “**관심사 분리**”는 중요하다고 자주 이야기되지만,  
-막상 코드 레벨에서는 가장 쉽게 무너지는 원칙이기도 하다.
+컴포넌트가 복잡해지면  
+자연스럽게 이런 생각이 든다.
 
-내가 이 주제에 다시 주목하게 된 계기는 아주 사소했다.
-
-> “페이지 A, B, C가 레이아웃이 거의 똑같으니까  
-> 공통 Page 컴포넌트로 묶으면 되지 않을까?”
-
-이 결정은 당시로서는 충분히 합리적으로 보였다.  
-중복을 줄이고, 구조를 정리하고,  
-재사용 가능한 컴포넌트를 만든다는 명분도 분명했다.
-
-하지만 시간이 지나면서  
-이 선택이 중복 제거를 위한 추상화가 아니라  
-**변경을 한 곳에 모아두는 구조**로 변해가는 과정을 여러 번 겪었다.
-
-이 문서는 그 경험을 통해  
-내가 관심사 분리를  
-“파일을 나누는 기술”이 아니라  
-**경계를 판단하는 사고 기준**으로 다시 정의하게 된 과정을 정리한 글이다.
-
----
-
-## 이 문서에서 말하는 props 확장이란?
-
-실무에서 코드 중복을 줄이기 위해  
-자주 사용하는 방법 중 하나는  
-**하나의 추상화에 props를 추가해서 차이를 흡수하는 방식**이다.
-
-예를 들어 버튼 컴포넌트에서 표현을 바꾸기 위해  
-이런 방식을 사용한다.
+> "이거 너무 복잡한데, 나눠야 하지 않을까?"
 
 ```tsx
-<Button variant="primary" />
-<Button variant="secondary" />
-```
-
-이 방식은  
-같은 책임을 가진 대상이  
-표현만 다를 때는 유효하다.
-
-두 버튼은 서로 다른 것이 아니다.  
-여전히 같은 "버튼"이고,  
-역할과 책임도 변하지 않는다.
-
-달라지는 것은 오직 표현이다.
-
-하지만 문제는  
-이 방식을 표현의 차이를 넘어  
-**의미와 책임의 차이까지 흡수하려 할 때** 발생한다.
-
-이 문서에서 사용하는 기준은 명확하다.
-
-> props 추가는 표현의 차이를 다룰 수는 있지만,  
-> 의미나 책임의 차이를 대신할 수는 없다.
-
-이 기준을 벗어나는 순간,  
-props 추가는  
-관심사 분리를 돕는 도구가 아니라  
-경계를 흐리는 장치가 된다.
-
----
-## 문제가 된 구조: Page(type)
-
-문제가 되었던 구조는 처음에는 꽤 단순해 보였다.
-
-페이지 A, B, C는 화면 레이아웃이 거의 동일했고,  
-그래서 하나의 공통 `Page` 컴포넌트로 묶였다.  
-외부에서는 단지 `type` 값만 넘겨  
-어떤 페이지를 렌더링할지 결정하는 방식이었다.
-
-```tsx
-// shared/components/Page.tsx
-export const Page = ({ type }: { type: 'A' | 'B' | 'C' }) => {
-  if (type === 'A') {
-    // A 전용 로직
-  }
-
-  if (type === 'B') {
-    // B 전용 로직
-  }
-
-  if (type === 'C') {
-    // C 전용 로직
-  }
-
-  return <Layout>{/* type별 UI */}</Layout>;
+// 복잡한 UserProfile 컴포넌트
+export const UserProfile = () => {
+  // 사용자 데이터
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // 편집 상태
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  
+  // 권한 확인
+  const [hasPermission, setHasPermission] = useState(false);
+  
+  useEffect(() => {
+    fetchUser().then(setUser);
+    checkPermission().then(setHasPermission);
+  }, []);
+  
+  const handleEdit = () => { /* ... */ };
+  const handleSave = () => { /* ... */ };
+  const handleCancel = () => { /* ... */ };
+  
+  // 100줄 이상의 렌더링 로직
+  return (
+    <div>
+      {/* 복잡한 UI */}
+    </div>
+  );
 };
 ```
-사용하는 쪽에서는 이렇게 보였다.
+
+이 컴포넌트는:
+- 데이터를 가져오고
+- 편집 상태를 관리하고
+- 권한을 확인하고
+- UI를 렌더링한다
+
+**너무 많은 것을 하고 있다.**
+
+이것이 컴포넌트를 나누게 되는 자연스러운 이유다.
+
+하지만 여기서 질문이 생긴다.
+
+> "어떻게 나눠야 할까?"
+
+이 문서는  
+컴포넌트를 나누는 기술이 아니라,  
+**무엇을 기준으로 나눌 것인지**를  
+다시 생각해보기 위해 쓰였다.
+
+---
+
+## 관심사 분리란 무엇인가
+
+관심사 분리(Separation of Concerns)는  
+**서로 다른 책임을 서로 다른 곳에 두는 것**이다.
+
+### 간단한 예시
 
 ```tsx
-<Page type="A" />
-<Page type="B" />
-<Page type="C" />
+// 나쁨: 모든 것이 한 곳에
+export const UserProfile = () => {
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
+  
+  if (!user) return <div>로딩중...</div>;
+  
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+};
 ```
+
+이 컴포넌트는:
+- 데이터를 **가져오는** 책임
+- 데이터를 **표시하는** 책임
+
+두 가지를 모두 가진다.
+
+```tsx
+// 좋음: 책임을 나눔
+// 데이터 가져오기
+export const useUser = () => {
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
+  
+  return user;
+};
+
+// 데이터 표시하기
+export const UserProfile = () => {
+  const user = useUser();
+  
+  if (!user) return <div>로딩중...</div>;
+  
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+};
+```
+
+이제 각각은 하나의 책임만 가진다.
+
+이것이 관심사 분리다.
+
+> 관심사 분리는  
+> 각각의 책임을 명확히 하고,  
+> 서로 다른 책임을 섞지 않는 것이다.
+
 ---
-## 왜 이 구조는 관심사 분리에 실패했는가
 
-앞에서 살펴본 `Page(type)` 구조는  
-겉보기에는 단순하고 재사용 가능한 형태처럼 보였다.
+## 왜 나눠야 하는가
 
-하지만 시간이 지나면서  
-이 구조는 관심사 분리를 유지하지 못했고,  
-그 원인은 구현의 문제가 아니라  
-**경계를 잘못 설정한 데** 있었다.
-
----
+관심사 분리를 하는 이유는  
+**변경을 쉽게 만들기 위해서**다.
 
 ### 변경의 국소성
 
-페이지 A의 요구사항을 수정해야 할 때,  
-수정은 `PageA.tsx`가 아니라  
-공통 `Page` 컴포넌트 안에서 이루어졌다.
+코드를 수정할 때  
+이상적인 상황은 이렇다.
 
-변경의 이유는 A 페이지에 있었지만,  
-변경의 위치는 공통 컴포넌트였다.
+> "A를 바꾸려면 A만 수정하면 된다."
 
-이 구조에서는  
-변경이 항상 자기 자리에서 일어나지 않았다.  
-그 결과, 특정 페이지의 변경이  
-공유 레이어까지 영향을 미치게 되었다.
-
----
-### 공유 레이어의 오염
-
-문제가 더 분명해진 건  
-`Page`의 props가 늘어나기 시작하면서였다.
+하지만 관심사가 섞여 있으면:
 
 ```tsx
-<Page type="A" checked={true} hasFooter={false} />
-```
-> - `checked는` Page A에만 의미가 있고,  
-> - `hasFooter는` Page C에만 의미가 있다.  
-
-그럼에도 불구하고,  이 값들은 공통 Page 컴포넌트의 props가 되었다.
-
-```tsx
-type PageProps = {
-  type: 'A' | 'B' | 'C';
-  checked?: boolean;
-  hasFooter?: boolean;
-};
-```
-
-이 인터페이스는
-"**모든 페이지는 checked와 footer를 가질 수 있다**"고 말한다.  
-하지만 실제 도메인은 그렇지 않다.
-
-공유 레이어는 점점  
-레이아웃을 제공하는 공간이 아니라,  
-각 도메인의 세부 요구사항을 기억해야 하는 공간이 되었다.
-
----
-### props가 의미를 대표하게 되는 순간
-
-처음에 `type`은  
-단순한 구분자에 불과했다.
-
-하지만 시간이 지나면서  
-`type` 하나가 페이지의 정체성 전체를 설명하게 되었다.
-
-> - 어떤 데이터 소스를 사용하는지
-> - 어떤 비즈니스 규칙이 적용되는지
-> - 사용자 흐름이 어떻게 이어지는지
-
-이 모든 것이  
-`type` 값에 의해 결정되기 시작했다.
-
-이 순간부터 `type`은  
-표현을 바꾸는 props가 아니라,  
-**의미와 책임을 결정하는 값**이 되었다.
-
-props 기반 추상화는  
-이 지점에서 경계를 넘었다.
-
----
-## 내가 세운 기준
-
-앞에서 살펴본 구조의 문제는  
-추상화를 했다는 사실 자체가 아니라,  
-**차이를 어떤 방식으로 흡수했는지에 대한 판단 기준이 없었다는 점**에 있었다.
-
-props 확장과 Composition은  
-모두 추상화의 한 형태지만,  
-서로 다른 문제를 해결하기 위한 방식이다.
-
-그래서 이후에는  
-차이를 하나의 컴포넌트에 props를 추가해서 흡수할 것인지,  
-아니면 경계를 유지한 채 Composition으로 풀 것인지를  
-먼저 판단하기 시작했다.
-
----
-### props 확장과 Composition의 경계 판단 기준
-
-아래 기준은  
-**차이를 props 추가로 다룰 수 있는지**,  
-아니면 **경계를 분리한 채 합성해야 하는지**를 판단하기 위한 표다.
-
-| 판단 항목 | props 추가로 허용 | Composition으로 분리 |
-|----------|----------------|----------------------|
-| UI 표현 | 색상, 스타일, 크기, 문구 차이 | UI 구조 자체가 다름 |
-| 데이터 소스 | 동일한 데이터 소스 | 서로 다른 데이터 소스 |
-| 비즈니스 규칙 | 동일한 규칙 적용 | 규칙 자체가 다름 |
-| 사용자 흐름 | 동일한 사용자 흐름 | 흐름/시나리오가 다름 |
-| 변경 단위 | 항상 함께 변경됨 | 변경이 독립적으로 발생 |
-| 의미 / 책임 | 동일한 의미와 책임 | 의미나 책임이 다름 |
-
-이 표에서  
-오른쪽 열에 해당하는 항목이 하나라도 존재한다면,  
-그 차이는 props 추가로 흡수하기에는 이미 경계를 넘은 상태다.
-
-이 경우 문제는  
-props를 더 정교하게 설계하는 것이 아니라,  
-**컴포넌트의 책임과 경계를 다시 나누는 것**에 가깝다.
-
-이 기준은  
-추상화를 더 적극적으로 하기 위한 기준이 아니라,  
-**불필요한 결합을 만들지 않기 위한 기준**이다.
-
----
-## 대안: props 확장 대신 합성(Composition)
-
-앞에서 살펴본 문제의 해법은  
-공통 컴포넌트를 더 똑똑하게 만드는 것이 아니었다.
-
-문제는 `type` 분기를 얼마나 잘 정리하느냐가 아니라,  
-**서로 다른 의미와 책임을 하나의 컴포넌트 안에 묶어두었다는 점**에 있었다.
-
-그래서 내가 선택한 대안은  
-props를 추가하는 대신,  
-**경계를 유지한 채 합성(Composition)하는 방식**이었다.
-
----
-### 레이아웃과 도메인의 책임 분리
-
-페이지 A, B, C는  
-레이아웃만 공유할 뿐,  
-도메인과 비즈니스 로직은 서로 달랐다.
-
-이 경우 레이아웃은  
-하나의 공통 컴포넌트로 분리하되,  
-도메인 로직은 각 페이지가 직접 책임지도록 두는 것이 더 자연스럽다.
-
-```tsx
-// shared/ui/PageLayout.tsx
-export const PageLayout = ({ 
-  header,
-  children,
-  footer 
-}: { 
-  header?: React.ReactNode;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-}) => {
-  return (
-    <Layout>
-      {header && <Header>{header}</Header>}
-      <Content>{children}</Content>
-      {footer && <Footer>{footer}</Footer>}
-    </Layout>
-  );
-};
-```
-
-이 레이아웃은  
-어떤 페이지인지,  
-어떤 데이터를 사용하는지,  
-어떤 규칙이 적용되는지를 알지 못한다.  
-
-그 역할은 오직 하나다.  
-구조를 제공하는 것.
-
----
-### 페이지는 자신의 책임만 가진다
-
-각 페이지는  
-자신이 다루는 도메인과 로직을 직접 소유한다.
-
-```tsx
-// pages/A/PageA.tsx
-export const PageA = () => {
-  const { data, isChecked, handleCheck } = useAPageLogic();
-
-  return (
-    <PageLayout
-      header={<PageAHeader title="페이지 A" />}
-      footer={null}
-    >
-      <APageContent 
-        data={data}
-        checked={isChecked}
-        onCheck={handleCheck}
-      />
-    </PageLayout>
-  );
-};
-```
-
-```tsx
-// pages/B/PageB.tsx
-export const PageB = () => {
-  const { items } = useBPageLogic();
-
-  return (
-    <PageLayout
-      header={<PageBHeader title="페이지 B" />}
-      footer={<PageBFooter />}
-    >
-      <BPageContent items={items} />
-    </PageLayout>
-  );
-};
-```
-
-```tsx
-// pages/C/PageC.tsx
-export const PageC = () => {
-  const { content, hasFooter } = useCPageLogic();
-
-  return (
-    <PageLayout
-      header={<PageCHeader title="페이지 C" />}
-      footer={hasFooter ? <PageCFooter /> : null}
-    >
-      <CPageContent content={content} />
-    </PageLayout>
-  );
-};
-```
-
-이 구조에서는  
-페이지 A의 변경이  
-페이지 A 내부에서만 일어난다.  
-
-- `checked`는 PageA만의 관심사가 되고
-- `hasFooter`는 PageC만의 관심사가 된다
-- 각 페이지의 데이터 소스와 규칙은 독립적이다
-
-공통 레이어는  
-변경의 영향 범위를 알 필요가 없고,  
-각 페이지는  
-자신의 의미와 책임을 명확하게 유지한다.
-
----
-### Composition이 가져온 변화
-
-이 방식은  
-표면적으로는 코드가 조금 늘어나는 것처럼 보일 수 있다.  
-
-하지만 그 대가로 얻는 것은 분명하다.
-
-- **변경의 이유와 위치가 다시 가까워진다**  
-  PageA의 `checked` 로직은 PageA 안에만 존재한다
+// 나쁨: 섞여 있음
+export const UserProfile = () => {
+  const [user, setUser] = useState(null);
   
-- **공유 레이어가 도메인으로부터 보호된다**  
-  PageLayout은 `type`도, `checked`도, `hasFooter`도 알지 못한다
+  // API 엔드포인트 변경이 필요하면?
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
   
-- **props가 의미를 대표하지 않게 된다**  
-  각 페이지는 독립적인 컴포넌트로 자신의 정체성을 가진다
+  // UI 레이아웃 변경이 필요하면?
+  return (
+    <div className="profile">
+      <h1>{user?.name}</h1>
+    </div>
+  );
+};
+```
 
-중복을 줄이는 것보다 중요한 것은  
-변경을 예측 가능하게 만드는 것이었다.
+- API 엔드포인트를 바꾸려면 → UserProfile 수정
+- UI 레이아웃을 바꾸려면 → UserProfile 수정
+- 모든 변경이 같은 파일로 모인다
 
-합성(Composition)은  
-중복을 없애기 위한 기술이 아니라,  
-경계를 지키기 위한 선택이었다.
+```tsx
+// 좋음: 나뉘어 있음
+export const useUser = () => {
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
+  
+  return user;
+};
+
+export const UserProfile = () => {
+  const user = useUser();
+  
+  return (
+    <div className="profile">
+      <h1>{user?.name}</h1>
+    </div>
+  );
+};
+```
+
+- API 엔드포인트를 바꾸려면 → `useUser` 수정
+- UI 레이아웃을 바꾸려면 → `UserProfile` 수정
+- 각 변경이 자기 자리에서 일어난다
+
+이것이 **변경의 국소성**이다.
+
+> 관심사를 나누면,  
+> 변경의 이유가 명확해지고,  
+> 변경이 한 곳에서만 일어난다.
 
 ---
-## props 기반 추상화는 언제까지 유효한가
 
-이 문서는 props 기반 추상화 자체를 부정하지 않는다.
+## 무엇을 기준으로 나누는가
 
-추상화에 props를 추가해서 차이를 흡수하는 방식은  
-여전히 잘 정의된 문제를 해결하는 데 매우 유효한 도구다.  
-문제는 props를 추가하는 순간이 아니라,  
-**어디까지를 props로 다루느냐**에 있다.
+그렇다면 **무엇을** 기준으로 나눠야 할까?
 
-props 기반 추상화가 유효하려면  
-다음 조건들이 충족되어야 한다.
+### 변경의 이유
 
-- 다루는 대상의 **의미와 책임이 동일해야 한다**
-- 차이가 **표현(UI) 수준**에 머물러야 한다
-- 사용하는 **데이터 소스가 동일**해야 한다
-- 적용되는 **비즈니스 규칙이 동일**해야 한다
-- 변경이 항상 **함께 일어나야 한다**
+가장 중요한 기준은  
+**"왜 이 코드가 바뀌는가"**다.
 
-이 조건이 유지되는 한,  
-props 추가는 중복을 줄이고  
-구조를 단순하게 만드는 좋은 선택이 된다.
+```tsx
+// 이 컴포넌트가 바뀌는 이유는?
+export const UserProfile = () => {
+  // 1. API 엔드포인트가 바뀔 때
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
+  
+  // 2. 권한 규칙이 바뀔 때
+  const canEdit = user?.role === 'admin';
+  
+  // 3. UI 디자인이 바뀔 때
+  return (
+    <div>
+      <h1>{user?.name}</h1>
+      {canEdit && <button>편집</button>}
+    </div>
+  );
+};
+```
 
-하지만 이 조건 중 하나라도 깨지는 순간,  
-props는 더 이상 표현을 조절하는 도구가 아니라  
-의미와 책임을 억지로 묶는 수단이 된다.
+이 컴포넌트는 **세 가지 이유**로 바뀐다.
 
-이 시점부터 문제는  
-"props를 어떻게 설계할 것인가"가 아니라,  
-"**이 차이를 하나의 컴포넌트 안에 두는 것이 맞는가**"로 바뀐다.
+각 이유는 서로 다른 관심사다.
 
-props 기반 추상화는  
-경계를 대신 설명해 주지 않는다.
+```tsx
+// 1. 데이터 가져오기 (API)
+export const useUser = () => {
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
+  return user;
+};
 
-경계를 명확히 한 뒤에만  
-props는 제 역할을 할 수 있다.
+// 2. 권한 확인 (비즈니스 규칙)
+export const useCanEditUser = (user) => {
+  return user?.role === 'admin';
+};
+
+// 3. UI 표시
+export const UserProfile = () => {
+  const user = useUser();
+  const canEdit = useCanEditUser(user);
+  
+  return (
+    <div>
+      <h1>{user?.name}</h1>
+      {canEdit && <button>편집</button>}
+    </div>
+  );
+};
+```
+
+이제 각각은 하나의 이유로만 바뀐다.
+
+### 단일 책임 원칙
+
+이것을 **단일 책임 원칙**(Single Responsibility Principle)이라고 한다.
+
+> 각 모듈/컴포넌트는  
+> 변경의 이유가 하나여야 한다.
+
+---
+
+## 관심사의 종류
+
+프론트엔드에서 자주 마주치는 관심사들:
+
+### 1. 데이터 관심사
+
+```tsx
+// 데이터 가져오기
+export const useUser = () => {
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    fetchUser().then(setUser);
+  }, []);
+  return user;
+};
+```
+
+변경 이유:
+- API 엔드포인트가 바뀐다
+- 데이터 구조가 바뀐다
+- 캐싱 전략이 바뀐다
+
+### 2. 비즈니스 로직 관심사
+
+```tsx
+// 권한 확인
+export const usePermission = (user) => {
+  return user?.role === 'admin' || user?.isOwner;
+};
+```
+
+변경 이유:
+- 권한 규칙이 바뀐다
+- 비즈니스 요구사항이 바뀐다
+
+### 3. UI 관심사
+
+```tsx
+// 화면 표시
+export const UserProfile = ({ user }) => {
+  return (
+    <div>
+      <h1>{user.name}</h1>
+    </div>
+  );
+};
+```
+
+변경 이유:
+- 디자인이 바뀐다
+- 레이아웃이 바뀐다
+- 스타일이 바뀐다
+
+### 4. 상태 관리 관심사
+
+```tsx
+// 편집 상태
+export const useEditMode = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedValue, setEditedValue] = useState('');
+  
+  return {
+    isEditing,
+    editedValue,
+    startEdit: () => setIsEditing(true),
+    cancelEdit: () => setIsEditing(false),
+    updateValue: setEditedValue,
+  };
+};
+```
+
+변경 이유:
+- 편집 흐름이 바뀐다
+- 상태 관리 방식이 바뀐다
+
+---
+
+## 좋은 분리 vs 나쁜 분리
+
+모든 분리가 좋은 것은 아니다.
+
+### 나쁜 분리: 억지로 나눔
+
+```tsx
+// 나쁨: 의미 없는 분리
+export const UserNamePart = ({ name }) => {
+  return <h1>{name}</h1>;
+};
+
+export const UserEmailPart = ({ email }) => {
+  return <p>{email}</p>;
+};
+
+export const UserProfile = ({ user }) => {
+  return (
+    <div>
+      <UserNamePart name={user.name} />
+      <UserEmailPart email={user.email} />
+    </div>
+  );
+};
+```
+
+이것은 과도한 분리다.  
+이름과 이메일은 **함께 변경**된다.  
+나눌 이유가 없다.
+
+### 좋은 분리: 책임에 따라 나눔
+
+```tsx
+// 좋음: 의미 있는 분리
+export const UserData = ({ user }) => {
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+};
+
+export const UserActions = ({ onEdit, onDelete }) => {
+  return (
+    <div>
+      <button onClick={onEdit}>편집</button>
+      <button onClick={onDelete}>삭제</button>
+    </div>
+  );
+};
+
+export const UserProfile = ({ user, onEdit, onDelete }) => {
+  return (
+    <div>
+      <UserData user={user} />
+      <UserActions onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  );
+};
+```
+
+데이터 표시와 액션은  
+서로 다른 이유로 변경된다.  
+나눌 가치가 있다.
+
+---
+
+## 분리의 신호
+
+언제 나눠야 하는지 알려주는 신호들:
+
+### 1. 컴포넌트가 너무 길다
+
+```tsx
+// 200줄 이상의 컴포넌트
+export const UserProfile = () => {
+  // ... 100줄
+  // ... 더 많은 코드
+};
+```
+
+→ 여러 책임이 섞여 있을 가능성
+
+### 2. useEffect가 3개 이상
+
+```tsx
+export const UserProfile = () => {
+  useEffect(() => { /* 사용자 데이터 */ }, []);
+  useEffect(() => { /* 권한 확인 */ }, []);
+  useEffect(() => { /* 알림 구독 */ }, []);
+  // ...
+};
+```
+
+→ 여러 데이터 소스를 다루고 있음
+
+### 3. useState가 5개 이상
+
+```tsx
+export const UserProfile = () => {
+  const [user, setUser] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [hasPermission, setHasPermission] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  // ...
+};
+```
+
+→ 여러 상태를 관리하고 있음
+
+### 4. "그리고"가 들어가는 설명
+
+> "이 컴포넌트는 사용자 데이터를 가져오고, **그리고** 편집 기능을 제공하고, **그리고** 권한을 확인한다."
+
+"그리고"가 들어가면  
+여러 책임을 가지고 있다는 신호다.
+
+---
+
+## 분리의 판단 기준
+
+관심사를 나눌지 말지 판단하는 기준:
+
+| 질문 | Yes | No |
+|-----|-----|-----|
+| **독립적으로 변경**되는가? | 나눈다 | 함께 둔다 |
+| **재사용**될 가능성이 있는가? | 나눈다 | 함께 둔다 |
+| **테스트**를 독립적으로 해야 하는가? | 나눈다 | 함께 둔다 |
+| 변경 **이유가 다른가**? | 나눈다 | 함께 둔다 |
+| **이해하기** 쉬워지는가? | 나눈다 | 함께 둔다 |
+
+"나눈다"가 3개 이상이면  
+분리할 가치가 있다.
+
+---
+
+## 나누는 방법
+
+관심사를 나누는 구체적인 방법들:
+
+### 1. Custom Hook으로 분리
+
+```tsx
+// 데이터 로직 분리
+export const useUser = (userId) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    setIsLoading(true);
+    fetchUser(userId)
+      .then(setUser)
+      .finally(() => setIsLoading(false));
+  }, [userId]);
+  
+  return { user, isLoading };
+};
+
+// 사용
+export const UserProfile = ({ userId }) => {
+  const { user, isLoading } = useUser(userId);
+  
+  if (isLoading) return <Loading />;
+  return <div>{user.name}</div>;
+};
+```
+
+### 2. 컴포넌트로 분리
+
+```tsx
+// UI 로직 분리
+export const UserAvatar = ({ user }) => {
+  return (
+    <div className="avatar">
+      <img src={user.avatar} alt={user.name} />
+    </div>
+  );
+};
+
+export const UserInfo = ({ user }) => {
+  return (
+    <div className="info">
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+};
+
+// 조합
+export const UserProfile = ({ user }) => {
+  return (
+    <div>
+      <UserAvatar user={user} />
+      <UserInfo user={user} />
+    </div>
+  );
+};
+```
+
+### 3. 유틸 함수로 분리
+
+```tsx
+// 비즈니스 로직 분리
+export const canEditUser = (currentUser, targetUser) => {
+  return currentUser.role === 'admin' || currentUser.id === targetUser.id;
+};
+
+export const formatUserName = (user) => {
+  return `${user.firstName} ${user.lastName}`;
+};
+
+// 사용
+export const UserProfile = ({ user, currentUser }) => {
+  const canEdit = canEditUser(currentUser, user);
+  const displayName = formatUserName(user);
+  
+  return (
+    <div>
+      <h1>{displayName}</h1>
+      {canEdit && <button>편집</button>}
+    </div>
+  );
+};
+```
+
+---
+
+## 나누는 것의 비용
+
+분리에도 비용이 있다.
+
+### 비용 1: 파일이 늘어난다
+
+```
+// 분리 전: 1개 파일
+UserProfile.tsx
+
+// 분리 후: 4개 파일
+UserProfile.tsx
+useUser.ts
+UserAvatar.tsx
+UserInfo.tsx
+```
+
+### 비용 2: 추적이 어려워진다
+
+```tsx
+// 분리 전: 한 곳에서 모든 것
+export const UserProfile = () => {
+  // 여기서 모든 것 확인 가능
+};
+
+// 분리 후: 여러 곳 확인 필요
+export const UserProfile = () => {
+  const { user } = useUser();  // useUser.ts 확인 필요
+  return <UserInfo user={user} />;  // UserInfo.tsx 확인 필요
+};
+```
+
+### 비용 3: 과도한 추상화
+
+```tsx
+// 나쁨: 과도한 분리
+export const useFetchData = () => { /* ... */ };
+export const useLoadingState = () => { /* ... */ };
+export const useErrorState = () => { /* ... */ };
+export const useDataProcessing = () => { /* ... */ };
+export const useDataValidation = () => { /* ... */ };
+// ...
+```
+
+모든 것을 나누면  
+오히려 복잡해진다.
+
+---
+
+## 적절한 균형
+
+관심사 분리의 목표는  
+**모든 것을 나누는 것이 아니라**,  
+**적절한 균형을 찾는 것**이다.
+
+### 나누지 않아도 되는 경우
+
+- 항상 함께 변경되는 것
+- 서로 강하게 의존하는 것
+- 재사용 가능성이 없는 것
+- 분리해도 이해하기 쉬워지지 않는 것
+
+### 반드시 나눠야 하는 경우
+
+- 독립적으로 변경되는 것
+- 재사용될 가능성이 있는 것
+- 독립적으로 테스트해야 하는 것
+- 변경 이유가 명확히 다른 것
+
+---
+
+## 예시: 실전 적용
+
+### Before: 섞여 있음
+
+```tsx
+export const UserProfile = ({ userId }) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  
+  useEffect(() => {
+    setIsLoading(true);
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(setUser)
+      .finally(() => setIsLoading(false));
+  }, [userId]);
+  
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditedName(user.name);
+  };
+  
+  const handleSave = () => {
+    fetch(`/api/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: editedName })
+    }).then(() => {
+      setUser({ ...user, name: editedName });
+      setIsEditing(false);
+    });
+  };
+  
+  if (isLoading) return <div>로딩중...</div>;
+  
+  return (
+    <div>
+      {isEditing ? (
+        <div>
+          <input 
+            value={editedName} 
+            onChange={(e) => setEditedName(e.target.value)} 
+          />
+          <button onClick={handleSave}>저장</button>
+          <button onClick={() => setIsEditing(false)}>취소</button>
+        </div>
+      ) : (
+        <div>
+          <h1>{user.name}</h1>
+          <button onClick={handleEdit}>편집</button>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### After: 관심사 분리
+
+```tsx
+// 1. 데이터 관심사
+export const useUser = (userId) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    setIsLoading(true);
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(setUser)
+      .finally(() => setIsLoading(false));
+  }, [userId]);
+  
+  const updateUser = (updates) => {
+    return fetch(`/api/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    }).then(() => {
+      setUser({ ...user, ...updates });
+    });
+  };
+  
+  return { user, isLoading, updateUser };
+};
+
+// 2. 편집 상태 관심사
+export const useEditMode = (initialValue) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedValue, setEditedValue] = useState(initialValue);
+  
+  return {
+    isEditing,
+    editedValue,
+    startEdit: () => {
+      setIsEditing(true);
+      setEditedValue(initialValue);
+    },
+    updateValue: setEditedValue,
+    cancelEdit: () => setIsEditing(false),
+    save: (onSave) => {
+      onSave(editedValue);
+      setIsEditing(false);
+    },
+  };
+};
+
+// 3. UI 관심사
+export const UserDisplay = ({ user, onEdit }) => {
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <button onClick={onEdit}>편집</button>
+    </div>
+  );
+};
+
+export const UserEdit = ({ value, onChange, onSave, onCancel }) => {
+  return (
+    <div>
+      <input value={value} onChange={(e) => onChange(e.target.value)} />
+      <button onClick={onSave}>저장</button>
+      <button onClick={onCancel}>취소</button>
+    </div>
+  );
+};
+
+// 4. 조합
+export const UserProfile = ({ userId }) => {
+  const { user, isLoading, updateUser } = useUser(userId);
+  const editMode = useEditMode(user?.name);
+  
+  if (isLoading) return <div>로딩중...</div>;
+  
+  return (
+    <div>
+      {editMode.isEditing ? (
+        <UserEdit
+          value={editMode.editedValue}
+          onChange={editMode.updateValue}
+          onSave={() => editMode.save((name) => updateUser({ name }))}
+          onCancel={editMode.cancelEdit}
+        />
+      ) : (
+        <UserDisplay user={user} onEdit={editMode.startEdit} />
+      )}
+    </div>
+  );
+};
+```
 
 ---
 
 ## 정리하며 — 관심사 분리를 다시 정의하면
 
-이 문서에서 다룬 문제는  
-특정 컴포넌트 구조나 React 패턴의 문제가 아니다.
-
-문제의 핵심은  
-**어디까지를 같은 책임으로 볼 것인가에 대한 판단이 없었다는 점**에 있었다.
+관심사 분리는  
+파일을 나누는 기술이 아니다.
 
 관심사 분리는  
-파일을 나누는 기술도,  
-로직을 분리하는 테크닉도 아니다.
+**변경의 이유를 명확히 하는 것**이다.
+
+> 각 모듈/컴포넌트가  
+> 하나의 이유로만 변경되도록 만드는 것.
+
+### 관심사 분리를 하는 이유
+
+- 변경이 한 곳에서만 일어나게 (변경의 국소성)
+- 코드를 이해하기 쉽게
+- 테스트를 독립적으로
+- 재사용 가능하게
+
+### 관심사를 나누는 기준
+
+- 변경의 이유가 다른가?
+- 독립적으로 변경되는가?
+- 재사용될 가능성이 있는가?
+
+### 나누는 것의 균형
+
+모든 것을 나누는 것이 답이 아니다.  
+적절한 균형이 중요하다.
+
+- 너무 적게 나누면 → 복잡해진다
+- 너무 많이 나누면 → 추적하기 어렵다
+
+중요한 것은  
+**변경의 이유를 명확히 하는 것**이다.
 
 관심사 분리는  
-**변경의 이유가  
-한 곳에 머물도록 만드는 설계 기준**이다.
-
-props 기반 추상화는  
-이 기준을 만족할 때에만 의미를 가진다.  
-표현의 차이를 다루는 한에서는 유효하지만,  
-의미와 책임을 대신 설명하기 시작하는 순간  
-경계를 침범하게 된다.
-
-그래서 내가 다시 정의한 관심사 분리는 이것이다.
-
-> 관심사 분리는  
-> 공통점을 얼마나 많이 뽑아낼 수 있는지가 아니라,  
-> **어디까지를 함께 묶지 말아야 하는지를 판단하는 기준이다.**
-
-이 기준이 명확해질수록,  
-이후에 선택하는 구조와 패턴은  
-자연스럽게 따라온다.
-
-이 문서는  
-그 판단을 내리기 위한 하나의 기준을  
-정리한 기록이다.
+복잡도를 다루기 위한  
+가장 기본적이고 강력한 원칙이다.
