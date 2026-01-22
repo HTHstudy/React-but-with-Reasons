@@ -1,10 +1,12 @@
-# React, but with Reasons
+# Why-Driven Development
 
-내가 React와 프론트엔드 아키텍처에 대해 어떻게 생각하고, 트레이드오프를 평가하며, 결정을 내리는지를 기록한 개인 포트폴리오입니다.
+왜(Why)에 집착하는 개발자입니다.  
+프론트엔드 아키텍처를 설계할 때, 코드보다 먼저 "왜 이렇게 해야 하는가"를 묻습니다.  
+React를 사용하며 내리는 결정들과 그 이유를 기록합니다.
 
 ## 📖 문서 보기
 
-문서 사이트 방문: **[https://hthstudy.github.io/React-but-with-Reasons/](https://hthstudy.github.io/React-but-with-Reasons/)**
+문서 사이트 방문: **[https://hthstudy.github.io/me/](https://hthstudy.github.io/me/)**
 
 또는 **[docs/](docs/)** 폴더에서 직접 읽기
 

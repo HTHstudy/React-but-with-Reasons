@@ -1,7 +1,7 @@
 # Site settings
-title: React, but with Reasons
-description: A personal portfolio about how I reason about React and frontend architecture
-baseurl: "/React-but-with-Reasons"
+title: Why-Driven Development
+description: A personal record of how I reason about frontend architecture, focusing on why rather than how
+baseurl: "/me"
 url: "https://hthstudy.github.io"
 
 # Theme
@@ -34,12 +34,12 @@ back_to_top_text: "Back to top"
 # Navigation
 nav_external_links:
   - title: GitHub
-    url: https://github.com/hthstudy/React-but-with-Reasons
+    url: https://github.com/hthstudy/me
 
 # Aux links
 aux_links:
   "View on GitHub":
-    - "https://github.com/hthstudy/React-but-with-Reasons"
+    - "https://github.com/hthstudy/me"
 
 # Enable copy code button
 enable_copy_code_button: true
