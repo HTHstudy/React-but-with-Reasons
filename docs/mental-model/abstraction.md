@@ -126,11 +126,13 @@ PrimaryButton
 
 ## 추상화를 하는 이유
 
-추상화를 하는 이유는 명확하다.
+추상화는 "장점"을 나열하는 문제가 아니다.  
+무엇을 얻고, 무엇을 잃는지에 대한 선택이다.
 
-### 중복 제거
+### 한 곳에서 바뀌게 만들기 (얻는 것)
 
-같은 코드를 여러 번 쓰지 않아도 된다.
+같은 코드를 여러 번 쓰지 않아도 된다.  
+변경이 한 곳으로 모인다.
 
 ```tsx
 // 추상화 전: 3번 반복
@@ -144,9 +146,10 @@ PrimaryButton
 <PrimaryButton>완료</PrimaryButton>
 ```
 
-### 일관성 유지
+### 일관성을 강제하기 (얻는 것)
 
-스타일이 바뀌어도 한 곳만 수정하면 된다.
+스타일이 바뀌어도 한 곳만 수정하면 된다.  
+일관성이 자연스럽게 유지된다.
 
 ```tsx
 // PrimaryButton 컴포넌트만 수정
@@ -161,7 +164,7 @@ export const PrimaryButton = ({ children }) => {
 // 모든 버튼에 자동 적용
 ```
 
-### 변경의 용이성
+### 변경을 모으기 (얻는 것)
 
 새로운 기능을 추가할 때도  
 한 곳에만 추가하면 된다.
@@ -181,11 +184,14 @@ export const PrimaryButton = ({ children, onClick }) => {
 };
 ```
 
-이것이 추상화의 가치다.
+이것이 추상화로 **얻는 것**이다.  
+하지만 동시에 **잃는 것**이 있다.
 
-> 추상화는 중복을 줄이고,  
-> 일관성을 유지하며,  
-> 변경을 쉽게 만든다.
+> "이것들은 앞으로도 함께 변한다"는  
+> **가정을 고정**하는 것이다.
+
+즉, 추상화는  
+얻는 것과 잃는 것을 **동시에** 선택하는 행위다.
 
 ---
 
@@ -418,33 +424,34 @@ useEffect(() => { fetch('/api/product').then(setProduct); }, []);
 
 ---
 
-## 좋은 추상화의 특징
+## 좋은 추상화가 실패로 변하는 신호
 
-좋은 추상화는 명확한 특징을 가진다.
+추상화는 정답 체크리스트가 아니라,  
+실패로 기울어지는 **신호**로 판단한다.
 
-### 1. 이름만 봐도 역할이 명확하다
+### 1. 이름이 역할을 숨기기 시작한다
 
 ```tsx
-// 좋음
+// 역할이 드러남
 <Button>클릭</Button>
 <Card>내용</Card>
 <Modal>팝업</Modal>
 
-// 나쁨
+// 역할이 숨겨짐
 <Component type="button">클릭</Component>
 <Container variant="card">내용</Container>
 <Wrapper mode="modal">팝업</Wrapper>
 ```
 
-### 2. 최소한의 props만 가진다
+### 2. props가 많아지며 차이를 감춘다
 
 ```tsx
-// 좋음
+// 차이가 최소로 드러남
 <Button variant="primary" onClick={handleClick}>
   저장
 </Button>
 
-// 나쁨
+// 차이가 과도하게 숨겨짐
 <Button 
   type="button"
   variant="primary"
@@ -460,28 +467,28 @@ useEffect(() => { fetch('/api/product').then(setProduct); }, []);
 </Button>
 ```
 
-### 3. 책임이 하나다
+### 3. 책임이 늘어나며 경계가 흐려진다
 
 ```tsx
-// 좋음: 레이아웃만
+// 경계가 선명함: 레이아웃만
 export const PageLayout = ({ children }) => {
   return <div className="page">{children}</div>;
 };
 
-// 나쁨: 레이아웃 + 데이터 + 로직
+// 경계가 흐려짐: 레이아웃 + 데이터 + 로직
 export const Page = ({ type, userId, onSave }) => {
   const data = useFetch(`/api/${type}/${userId}`);
   // ... 복잡한 로직
 };
 ```
 
-### 4. 사용처를 예측할 수 있다
+### 4. 사용처가 불명확해진다
 
 ```tsx
-// 좋음: 명확한 사용처
+// 사용처가 예측됨
 <PrimaryButton onClick={handleSave}>저장</PrimaryButton>
 
-// 나쁨: 불명확
+// 사용처가 불명확해짐
 <Button 
   as="a"
   href="/home"
@@ -574,16 +581,14 @@ export const PrimaryButton = ({ children }) => {
 추상화는 고정된 것이 아니라  
 요구사항에 따라 **진화**한다.
 
----
+### 세 번째는 휴리스틱이다
 
-## Rule of Three: 세 번째에 추상화하라
-
-추상화를 서두르지 않기 위한 간단한 규칙이 있다.
+추상화를 서두르지 않기 위한 기억 장치가 있다.
 
 ```
 1회: 작성
 2회: 복사 (중복 발생)
-3회: 추상화 (패턴 확인)
+3회: 패턴 확인 (판단 정보가 생김)
 ```
 
 ### 왜 세 번째인가?
@@ -601,13 +606,17 @@ export const PrimaryButton = ({ children }) => {
 // 2회: 복사
 <button className="btn btn-primary">제출</button>
 
-// 3회: 패턴 확인 → 이제 추상화
+// 3회: 패턴 확인 → 판단할 정보가 생김
 export const PrimaryButton = ({ children }) => {
   return <button className="btn btn-primary">{children}</button>;
 };
 ```
 
-세 번째에 추상화하면:
+세 번째는  
+"추상화하라"가 아니라  
+"추상화 가능한지 판단할 정보가 생긴다"는 뜻이다.
+
+세 번째에 판단하면:
 - 패턴이 충분히 드러났다
 - 차이가 무엇인지 명확하다
 - 우연한 중복인지 본질적 중복인지 판단 가능
