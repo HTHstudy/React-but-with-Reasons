@@ -44,7 +44,8 @@ nav_order: 1
 - [관심사 분리](docs/mental-model/separation-of-concerns) — 경계를 어떻게 나눌 것인가
 - [추상화](docs/mental-model/abstraction) — 무엇을 하나로 묶을 것인가
 - [재사용과 유연성](docs/mental-model/reusability-flexibility) — 왜 재사용하려다 복잡해지는가
-- [비용](costs) — 무엇을 지불하고 있는가
+- [비용](docs/mental-model/costs) — 무엇을 지불하고 있는가
+- [명시성](docs/mental-model/explicitness) — 무엇을 암시하고 무엇을 명시할 것인가
 
 ### [Decisions over Patterns](docs/decisions-over-patterns) — 패턴이 아닌 결정
 
